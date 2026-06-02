@@ -1,67 +1,227 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI日記コーチ</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, sans-serif; background: #0f0f1a; color: #f0f0f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
-    .card { background: #1a1a2e; border-radius: 24px; padding: 36px 28px; max-width: 480px; width: 100%; text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
-    .emoji { font-size: 56px; margin-bottom: 16px; }
-    h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; color: #fff; }
-    .sub { font-size: 14px; color: #aaa; margin-bottom: 32px; line-height: 1.7; }
-    .steps { text-align: left; margin-bottom: 32px; background: #12122a; border-radius: 16px; padding: 20px; }
-    .step { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
-    .step:last-child { margin-bottom: 0; }
-    .step-num { background: #6c63ff; color: #fff; font-size: 13px; font-weight: 700; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
-    .step-text { font-size: 14px; line-height: 1.7; color: #ddd; }
-    .step-text strong { color: #fff; }
-    .btn { display: block; width: 100%; padding: 18px; border-radius: 16px; border: none; font-size: 17px; font-weight: 700; cursor: pointer; text-decoration: none; margin-bottom: 12px; transition: opacity 0.2s; }
-    .btn:active { opacity: 0.8; }
-    .btn-step1 { background: linear-gradient(135deg, #6c63ff, #48c774); color: #fff; }
-    .btn-step2 { background: #2a2a3e; color: #ccc; font-size: 15px; }
-    .divider { font-size: 12px; color: #555; margin: 4px 0 12px; }
-    .note { font-size: 12px; color: #555; margin-top: 20px; line-height: 1.7; }
-    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px); background: #48c774; color: #fff; padding: 12px 24px; border-radius: 99px; font-size: 14px; font-weight: 600; transition: transform 0.3s ease; pointer-events: none; white-space: nowrap; }
-    .toast.show { transform: translateX(-50%) translateY(0); }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIミラー ～AIに話すほど自分が見えてくる～</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; background: #0f0f1a; color: #e8e8f0; min-height: 100vh; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 80px 20px 60px; background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%); position: relative; overflow: hidden; }
+  .hero::before { content: '🪞'; font-size: 80px; display: block; margin-bottom: 20px; filter: drop-shadow(0 0 30px rgba(150,120,255,0.6)); }
+  .hero h1 { font-size: clamp(1.6rem, 5vw, 2.8rem); font-weight: bold; color: #fff; margin-bottom: 12px; }
+  .hero h1 span { color: #a78bfa; }
+  .hero p { font-size: 1.1rem; color: #b0b0cc; margin-bottom: 40px; line-height: 1.8; }
+  .btn { display: inline-block; background: linear-gradient(135deg, #7c3aed, #a78bfa); color: #fff; padding: 16px 40px; border-radius: 50px; font-size: 1.1rem; font-weight: bold; text-decoration: none; box-shadow: 0 4px 20px rgba(124,58,237,0.4); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; border: none; }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,58,237,0.6); }
+
+  /* Copy area */
+  .copy-section { max-width: 800px; margin: 0 auto; padding: 60px 20px; }
+  .copy-section h2 { font-size: 1.4rem; color: #a78bfa; margin-bottom: 20px; text-align: center; }
+  .prompt-box { background: #1a1a2e; border: 1px solid #2d2d4e; border-radius: 16px; padding: 24px; position: relative; }
+  .prompt-text { font-size: 0.9rem; line-height: 1.8; color: #c8c8e0; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+  .copy-btn { position: absolute; top: 16px; right: 16px; background: #7c3aed; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s; }
+  .copy-btn:hover { background: #6d28d9; }
+  .copy-btn.copied { background: #059669; }
+
+  /* Steps */
+  .steps { background: #13131f; padding: 60px 20px; }
+  .steps-inner { max-width: 700px; margin: 0 auto; }
+  .steps h2 { text-align: center; font-size: 1.5rem; color: #a78bfa; margin-bottom: 40px; }
+  .step { display: flex; gap: 20px; margin-bottom: 32px; align-items: flex-start; }
+  .step-num { background: linear-gradient(135deg, #7c3aed, #a78bfa); color: #fff; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 1.1rem; }
+  .step-body h3 { font-size: 1rem; color: #e8e8f0; margin-bottom: 6px; }
+  .step-body p { font-size: 0.9rem; color: #8888aa; line-height: 1.6; }
+
+  /* Commands */
+  .commands { max-width: 800px; margin: 0 auto; padding: 60px 20px; }
+  .commands h2 { text-align: center; font-size: 1.5rem; color: #a78bfa; margin-bottom: 40px; }
+  .cmd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+  .cmd-card { background: #1a1a2e; border: 1px solid #2d2d4e; border-radius: 16px; padding: 24px; }
+  .cmd-card h3 { font-size: 1rem; color: #a78bfa; margin-bottom: 14px; }
+  .cmd-card ul { list-style: none; }
+  .cmd-card li { font-size: 0.88rem; color: #b0b0cc; padding: 6px 0; border-bottom: 1px solid #2d2d4e; line-height: 1.5; }
+  .cmd-card li:last-child { border-bottom: none; }
+  .cmd-card li::before { content: '› '; color: #7c3aed; }
+
+  /* Timeline */
+  .timeline { background: #13131f; padding: 60px 20px; }
+  .timeline-inner { max-width: 600px; margin: 0 auto; }
+  .timeline h2 { text-align: center; font-size: 1.5rem; color: #a78bfa; margin-bottom: 40px; }
+  .tl-item { display: flex; gap: 20px; margin-bottom: 24px; }
+  .tl-dot { width: 12px; height: 12px; background: #7c3aed; border-radius: 50%; flex-shrink: 0; margin-top: 6px; box-shadow: 0 0 10px rgba(124,58,237,0.6); }
+  .tl-body { font-size: 0.95rem; color: #c8c8e0; line-height: 1.7; }
+  .tl-body strong { color: #a78bfa; }
+
+  /* Footer */
+  footer { text-align: center; padding: 40px 20px; color: #555570; font-size: 0.85rem; border-top: 1px solid #2d2d4e; }
+</style>
 </head>
 <body>
-<div class="card">
-  <div class="emoji">🌙</div>
-  <h1>AI日記コーチ</h1>
-  <p class="sub">ChatGPTがあなた専属の日記コーチになります。<br>2ステップで今日から始められます。</p>
-  <div class="steps">
+
+<section class="hero">
+  <h1>AIミラー<br><span>～AIに話すほど自分が見えてくる～</span></h1>
+  <p>AIとの対話を通じて、自分でも気付いていなかった<br>価値観・強み・可能性を発見するツール。</p>
+  <button class="btn" onclick="document.getElementById('prompt-section').scrollIntoView({behavior:'smooth'})">プロンプトをコピーして始める</button>
+</section>
+
+<section class="steps">
+  <div class="steps-inner">
+    <h2>📌 使い方</h2>
     <div class="step">
       <div class="step-num">1</div>
-      <div class="step-text"><strong>「プロンプトをコピー」</strong>ボタンを押す<br><span style="color:#888;font-size:13px;">コーチの設定が自動でコピーされます</span></div>
+      <div class="step-body">
+        <h3>ChatGPTを開く</h3>
+        <p>無料版でOK。アカウントがあればすぐ始められます。</p>
+      </div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div class="step-text"><strong>「ChatGPTを開く」</strong>ボタンを押して<br>入力欄に<strong>貼り付けて送信</strong>するだけ！<br><span style="color:#888;font-size:13px;">iPhoneは長押し→貼り付け / PCはCtrl+V</span></div>
+      <div class="step-body">
+        <h3>プロンプトをコピーして貼り付ける</h3>
+        <p>下のボタンでコピーして、ChatGPTのチャット欄に貼り付けるだけ。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>話しかけるだけ！</h3>
+        <p>同じチャットを使い続けてください。続けるほどAIミラーはあなたを深く理解していきます。</p>
+      </div>
     </div>
   </div>
-  <button class="btn btn-step1" onclick="copyPrompt()">📋 STEP1｜プロンプトをコピー</button>
-  <p class="divider">↓ コピーしたら次へ</p>
-  <a class="btn btn-step2" href="https://chatgpt.com/" target="_blank">💬 STEP2｜ChatGPTを開く</a>
-  <p class="note">※ ChatGPTのアカウントが必要です（無料でOK）<br>※ 貼り付けたチャットをブックマークしておくと毎日使えます</p>
-</div>
-<div class="toast" id="toast">コピーしました！</div>
+</section>
+
+<section class="copy-section" id="prompt-section">
+  <h2>▼ AIミラープロンプト（コピーして使う）</h2>
+  <div class="prompt-box">
+    <button class="copy-btn" id="copyBtn" onclick="copyPrompt()">コピー</button>
+    <pre class="prompt-text" id="promptText">AIミラー｜自分を映す思考の鏡
+
+あなたは私専属の「AIミラー」です。
+あなたの役割はアドバイザーではありません。
+まず私を理解することを最優先にしてください。
+あなたは会話を通して私の
+・価値観 ・感情の傾向 ・思考パターン ・強み ・興味関心 ・夢や目標 ・人生のテーマ
+を少しずつ理解し、私自身も気付いていない「本当の自分」を映し出してください。
+
+【AIミラーの目的】
+答えを与えることよりも、気付きを与えることを優先してください。
+
+【基本ルール】
+・友達のように自然に話す ・質問は短く1つずつ ・否定しない ・決めつけない
+・無理に解決しようとしない ・自己理解を深めることを最優先にする
+
+【重要】
+悩み相談を受けても、すぐ解決策を出さないこと。
+まず「その時どんな気持ちだった？」などの質問で理解を深める。
+
+【ミラーモード】
+会話中に定期的に「今の話から見えるあなた」を1〜3行で伝える。
+断定せず「〜の傾向がありそう」という表現を使う。
+
+【日記機能】「日記にして」→ 今日の日記を作成
+【週次分析】「今週のミラー分析」→ 週の振り返りレポート
+【月次分析】「今月のミラー分析」→ 月の振り返りレポート
+【人生分析】「人生分析」→ 総合分析レポート
+
+【最初のセリフ】
+こんにちは😊 私はAIミラー。
+答えを教える存在ではなく、あなた自身を映す鏡だよ。
+話せば話すほど、自分でも気付かなかった自分が見えてくる。
+それじゃあ、今日のあなたの話を聞かせて😊</pre>
+  </div>
+</section>
+
+<section class="commands">
+  <h2>✨ よく使うコマンド</h2>
+  <div class="cmd-grid">
+    <div class="cmd-card">
+      <h3>🪞 自分を知りたい時</h3>
+      <ul>
+        <li>私の価値観は？</li>
+        <li>私の強みは？</li>
+        <li>私を一言で表すと？</li>
+        <li>最近の変化は？</li>
+        <li>私が本当に大切にしているものは何？</li>
+      </ul>
+    </div>
+    <div class="cmd-card">
+      <h3>🧠 頭の整理をしたい時</h3>
+      <ul>
+        <li>頭の中を整理したい</li>
+        <li>今の気持ちを整理したい</li>
+        <li>モヤモヤしているので話を聞いて</li>
+        <li>今の悩みを整理したい</li>
+      </ul>
+    </div>
+    <div class="cmd-card">
+      <h3>💼 将来を考えたい時</h3>
+      <ul>
+        <li>私に向いている働き方は？</li>
+        <li>人生コンパス</li>
+        <li>今後伸びそうなことは？</li>
+        <li>私の人生のテーマは？</li>
+      </ul>
+    </div>
+    <div class="cmd-card">
+      <h3>💌 元気が欲しい時</h3>
+      <ul>
+        <li>AIからの手紙</li>
+        <li>今の私へメッセージを書いて</li>
+        <li>今まで頑張ってきた私を褒めて</li>
+      </ul>
+    </div>
+    <div class="cmd-card">
+      <h3>🔍 深く分析したい時</h3>
+      <ul>
+        <li>日記にして</li>
+        <li>今週のミラー分析</li>
+        <li>今月のミラー分析</li>
+        <li>人生分析</li>
+        <li>今までの全会話から私を徹底分析して</li>
+      </ul>
+    </div>
+    <div class="cmd-card">
+      <h3>📈 続けた人向け</h3>
+      <ul>
+        <li>私の価値観ランキングを作って</li>
+        <li>私の強みランキングを作って</li>
+        <li>私が幸せを感じる要素は？</li>
+        <li>私の思考パターンを教えて</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="timeline">
+  <div class="timeline-inner">
+    <h2>🌱 おすすめの流れ</h2>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><strong>1日目</strong> → 自由に話す</div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><strong>3日目</strong> → 「日記にして」</div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><strong>1週間後</strong> → 「今週のミラー分析」</div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><strong>1か月後</strong> → 「今月のミラー分析」</div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><strong>3か月後</strong> → 「人生分析」</div></div>
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><strong>半年後</strong> → 「今までの全会話から私を徹底分析してください」</div></div>
+  </div>
+</section>
+
+<footer>
+  <p>AIミラーは診断ツールではなく、自己理解を深める鏡です。🪞✨</p>
+</footer>
+
 <script>
-const P = "あなたは私の専属AI日記コーチです。今日からよろしくお願いします。\n\n毎日の出来事や気持ちを、会話しながら引き出してください。友達のような話し方で、短い質問を1つずつ投げかけてください。どんな内容でも否定せず温かく受け止めてください。\n\n私が「日記にして」と言ったら：\n📅 今日の日記\n今日のできごと：（3〜5行）\n今日の気持ち：（一言）\nコーチより：（励まし一言）\n\n私が「今週を振り返って」と言ったら：\n📊 今週よかったこと（3つ）/ がんばったこと（1〜2つ）/ 来週への一言\n\n私が「目標を設定したい」と言ったら目標を3つまで決めて、日記で自然に触れてください。\n\n私が「今月をまとめて」と言ったら月次まとめを作ってください。\n\n最初に必ずこう言ってください：\n「こんにちは！あなたの日記コーチだよ😊 今日からよろしくね！まず今日どんな一日だったか、なんでもいいから話してみて！」";
 function copyPrompt() {
-  navigator.clipboard.writeText(P).then(() => {
-    showToast('コピーしました！次はSTEP2でChatGPTを開いて貼り付けてください 👇');
-  }).catch(() => {
-    const ta = document.createElement('textarea');
-    ta.value = P; ta.style.position = 'fixed'; ta.style.opacity = '0';
-    document.body.appendChild(ta); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-    showToast('コピーしました！次はSTEP2でChatGPTを開いて貼り付けてください 👇');
+  const text = document.getElementById('promptText').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'コピー完了！';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'コピー'; btn.classList.remove('copied'); }, 2000);
   });
 }
-function showToast(m) { const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3500); }
 </script>
 </body>
 </html>
